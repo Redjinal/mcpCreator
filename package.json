@@ -1,0 +1,29 @@
+{
+  "name": "envato-relay-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Private MCP relay between Claude and Envato's official MCP endpoint, with a per-project asset ledger.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx scripts/dev-server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/local-test.mjs",
+    "inspect-filters": "node scripts/inspect-filters.mjs",
+    "access-test": "node scripts/envato-mcp-access-test.mjs",
+    "check-hosts": "node scripts/check-hosts.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.1.0",
+    "@vercel/blob": "^2.8.0",
+    "mcp-handler": "^2.2.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
