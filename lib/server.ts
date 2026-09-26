@@ -3,9 +3,9 @@
 import { createMcpHandler } from "mcp-handler";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { findAssets } from "./assets";
-import { listChoices, recordChoice } from "./ledger";
-import { upstreamTools } from "./upstream";
+import { findAssets } from "./assets.js";
+import { listChoices, recordChoice } from "./ledger.js";
+import { upstreamTools } from "./upstream.js";
 
 const KNOWN_CATEGORIES =
   "fonts, graphics, photos, graphic_templates, presentation_templates, stock_video, music, sound_effects, " +

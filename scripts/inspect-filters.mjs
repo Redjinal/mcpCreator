@@ -55,12 +55,17 @@ const out = `docs/envato-filter-schemas-${snapshot.capturedAt.slice(0, 10)}.json
 await mkdir("docs", { recursive: true });
 await writeFile(out, JSON.stringify(snapshot, null, 2) + "\n");
 console.log(`Server: ${JSON.stringify(init.serverInfo)}  fingerprint: ${fingerprint}`);
+// Filters live under filters.anyOf[0].properties (an [object, null] anyOf), and each
+// field is itself an [enum, null] anyOf — dig through both to print the enum values.
+const enumValues = (s) => s?.enum || s?.items?.enum || s?.anyOf?.map((o) => o.enum || o.items?.enum).find(Boolean);
+const filterProps = (schema) =>
+  schema?.properties?.filters?.properties || schema?.properties?.filters?.anyOf?.find((o) => o.properties)?.properties || {};
 for (const [name, schema] of Object.entries(snapshot.schemas)) {
-  const filters = schema?.properties?.filters?.properties || {};
   console.log(`\n${name}:`);
-  for (const [f, s] of Object.entries(filters)) {
-    const values = s.enum || s.items?.enum;
-    console.log(`  ${f}: ${values ? values.join(" | ") : s.type || "?"}`);
+  for (const [f, s] of Object.entries(filterProps(schema))) {
+    const values = enumValues(s);
+    const type = s.type || s.anyOf?.map((o) => o.type).filter((t) => t && t !== "null").join("|") || "?";
+    console.log(`  ${f}: ${values ? values.join(" | ") : type}`);
   }
 }
 console.log(`\nSaved ${out}`);

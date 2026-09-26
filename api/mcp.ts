@@ -1,4 +1,4 @@
-import { handler } from "../lib/server";
+import { handler } from "../lib/server.js";
 
 export const GET = handler;
 export const POST = handler;

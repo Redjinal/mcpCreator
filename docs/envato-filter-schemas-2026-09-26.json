@@ -1,0 +1,652 @@
+{
+  "capturedAt": "2026-09-26T17:43:23.670Z",
+  "server": {
+    "name": "SEO MCP Server",
+    "version": "3.2.4"
+  },
+  "fingerprint": "43d3e68a1a595478",
+  "tools": [
+    "search_photos",
+    "search_stock_video",
+    "search_music",
+    "search_sound_effects",
+    "search_graphics",
+    "search_graphic_templates",
+    "search_fonts",
+    "search_presentation_templates",
+    "search_video_templates",
+    "search_web_templates",
+    "search_3d",
+    "search_add_ons",
+    "search_wordpress",
+    "search_cms_templates",
+    "search_items"
+  ],
+  "schemas": {
+    "search_fonts": {
+      "additionalProperties": false,
+      "properties": {
+        "searchTerms": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "perPage": {
+          "default": 20,
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sortBy": {
+          "default": "popular",
+          "enum": [
+            "relevance",
+            "popular",
+            "latest"
+          ],
+          "type": "string"
+        },
+        "languageCode": {
+          "default": "en",
+          "enum": [
+            "en",
+            "es",
+            "fr",
+            "de",
+            "pt-BR"
+          ],
+          "type": "string"
+        },
+        "filters": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "categories": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "serif",
+                        "sans_serif",
+                        "script",
+                        "decorative_display",
+                        "monospace",
+                        "handwritten_brush",
+                        "blackletter",
+                        "symbols",
+                        "duo"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Font style classification"
+                },
+                "spacing": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Normal",
+                        "Monospace",
+                        "Condensed",
+                        "Expanded"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Character spacing style"
+                },
+                "optimum_size": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Large (Display / Poster)",
+                        "Small (Book / Magazine)",
+                        "Condensed",
+                        "Any Size"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Recommended use-case size"
+                },
+                "is_webfont": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Font is licensed and optimised for web use"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "searchTerms"
+      ],
+      "type": "object"
+    },
+    "search_graphics": {
+      "additionalProperties": false,
+      "properties": {
+        "searchTerms": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "perPage": {
+          "default": 20,
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sortBy": {
+          "default": "popular",
+          "enum": [
+            "relevance",
+            "popular",
+            "latest"
+          ],
+          "type": "string"
+        },
+        "languageCode": {
+          "default": "en",
+          "enum": [
+            "en",
+            "es",
+            "fr",
+            "de",
+            "pt-BR"
+          ],
+          "type": "string"
+        },
+        "filters": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "graphics_file_types": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "JPG",
+                        "PNG",
+                        "JSON"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "File format for graphic files"
+                },
+                "categories": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Backgrounds",
+                        "Textures",
+                        "Patterns",
+                        "Icons",
+                        "Objects",
+                        "Illustrations"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Graphic content category"
+                },
+                "graphics_applications_supported": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Adobe Photoshop",
+                        "Adobe Illustrator",
+                        "Figma",
+                        "Sketch",
+                        "Affinity"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Design application the asset is compatible with"
+                },
+                "is_vector": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Asset is vector-based"
+                },
+                "is_layered": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Asset includes editable layers"
+                },
+                "is_tileable": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Asset tiles seamlessly"
+                },
+                "is_animated": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Asset includes animation"
+                },
+                "is_looped": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Animation loops seamlessly"
+                },
+                "part_of_pack": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Asset is part of a multi-item pack"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "searchTerms"
+      ],
+      "type": "object"
+    },
+    "search_photos": {
+      "additionalProperties": false,
+      "properties": {
+        "searchTerms": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "perPage": {
+          "default": 20,
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sortBy": {
+          "default": "popular",
+          "enum": [
+            "relevance",
+            "popular",
+            "latest"
+          ],
+          "type": "string"
+        },
+        "languageCode": {
+          "default": "en",
+          "enum": [
+            "en",
+            "es",
+            "fr",
+            "de",
+            "pt-BR"
+          ],
+          "type": "string"
+        },
+        "filters": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "orientation": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "landscape",
+                        "portrait",
+                        "square"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Visual orientation of the content"
+                },
+                "number_of_people": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "No people",
+                        "1 person",
+                        "2 people",
+                        "3+ people"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Number of people visible in the photo"
+                },
+                "colors": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "pink",
+                        "red",
+                        "orange",
+                        "yellow",
+                        "green",
+                        "teal",
+                        "blue",
+                        "purple",
+                        "brown",
+                        "black",
+                        "grey",
+                        "white"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Dominant color"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "searchTerms"
+      ],
+      "type": "object"
+    },
+    "search_graphic_templates": {
+      "additionalProperties": false,
+      "properties": {
+        "searchTerms": {
+          "maxLength": 60,
+          "minLength": 1,
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "perPage": {
+          "default": 20,
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sortBy": {
+          "default": "popular",
+          "enum": [
+            "relevance",
+            "popular",
+            "latest"
+          ],
+          "type": "string"
+        },
+        "languageCode": {
+          "default": "en",
+          "enum": [
+            "en",
+            "es",
+            "fr",
+            "de",
+            "pt-BR"
+          ],
+          "type": "string"
+        },
+        "filters": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "categories": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Print Templates",
+                        "Product Mockups",
+                        "Websites",
+                        "UX and UI Kits",
+                        "Infographics",
+                        "Logos",
+                        "Scene Generators",
+                        "Social Media"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Graphic template category"
+                },
+                "graphic_templates_applications_supported": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Adobe Photoshop",
+                        "Adobe Illustrator",
+                        "Adobe InDesign",
+                        "Adobe XD",
+                        "Figma",
+                        "Sketch",
+                        "Canva",
+                        "Microsoft Word"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Design application the template targets"
+                },
+                "color_space": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "RGB",
+                        "CMYK"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Color space of the template"
+                },
+                "orientation": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "landscape",
+                        "portrait",
+                        "square"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Visual orientation of the template"
+                },
+                "is_vector": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Template is vector-based"
+                },
+                "is_layered": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Template includes editable layers"
+                },
+                "colors": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "pink",
+                        "red",
+                        "orange",
+                        "yellow",
+                        "green",
+                        "teal",
+                        "blue",
+                        "purple",
+                        "brown",
+                        "black",
+                        "grey",
+                        "white",
+                        "gold",
+                        "silver"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Logo color (logo category only)"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "searchTerms"
+      ],
+      "type": "object"
+    }
+  }
+}

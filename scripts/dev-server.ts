@@ -1,6 +1,6 @@
 // Local dev server: serves the same handler Vercel runs, at http://localhost:3000/mcp.
 import { createServer } from "node:http";
-import { handler } from "../lib/server";
+import { handler } from "../lib/server.js";
 
 const port = Number(process.env.PORT || 3000);
 
