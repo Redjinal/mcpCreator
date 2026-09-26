@@ -57,13 +57,13 @@ try {
   const found = await call("find_assets", { category: "fonts", brief: "editorial serif", limit: 3,
     constraints: { fontClassification: "serif", mood: ["editorial", "minimal"], colours: ["#1a1a1a"] } });
   assert.ok(!found.isError, found.value);
-  assert.ok(found.value.length >= 1 && found.value.every((a) => a.url && a.previewUrl), "items need url + previewUrl");
+  assert.ok(found.value.length >= 1 && found.value.every((a) => a.id && a.url && a.previewUrl), "items need id + url + previewUrl");
   ok(`find_assets fonts → ${found.value.length} items, e.g. ${JSON.stringify(found.value[0])}`);
 
   if (mock) {
     assert.equal(found.value.length, 3);
     const sent = mock.calls.find((c) => c.method === "tools/call").params.arguments;
-    assert.deepEqual(sent.filters, { classification: ["serif"] });
+    assert.deepEqual(sent.filters, { categories: "serif" });
     assert.equal(sent.searchTerms, "editorial serif minimal black");
     assert.equal(sent.perPage, 3);
     ok(`constraint mapping → filters ${JSON.stringify(sent.filters)}, searchTerms "${sent.searchTerms}"`);

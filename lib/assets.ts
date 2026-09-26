@@ -33,19 +33,33 @@ function findItems(payload: any): any[] {
 }
 
 function resultPayload(result: any): any {
-  if (result?.structuredContent) return result.structuredContent;
+  // Envato returns the clean item data as JSON in a text block. structuredContent
+  // is a UI "prefab" render tree ($prefab/view → layout nodes), not data — so the
+  // text block wins, and structuredContent is only a fallback when it isn't a prefab.
   for (const block of result?.content ?? []) {
     if (block.type !== "text") continue;
     try {
       return JSON.parse(block.text);
     } catch {}
   }
-  return null;
+  const sc = result?.structuredContent;
+  return sc && !sc.$prefab ? sc : null;
+}
+
+// Envato items carry no explicit id; the stable identifier is the trailing token
+// of the item URL (e.g. …editorial-serif-font-T4AFBVU → T4AFBVU), else the slug.
+function deriveId(url: string): string {
+  try {
+    const slug = new URL(url).pathname.split("/").filter(Boolean).pop() ?? "";
+    return /-([A-Za-z0-9]{5,})$/.exec(slug)?.[1] ?? slug;
+  } catch {
+    return "";
+  }
 }
 
 function previewOf(item: any): string | null {
   const direct = pick(item, [
-    "previewUrl", "preview_url", "thumbnailUrl", "thumbnail_url", "coverImageUrl", "coverImage",
+    "previewUrl", "preview_url", "thumbnailUrl", "thumbnail_url", "coverImageUrl", "coverImage", "cover_image",
     "previews.thumbnail.url", "previews.preview.url", "preview.url", "thumbnail.url", "image.url", "imageUrl",
   ]);
   if (direct) return direct;
@@ -79,10 +93,11 @@ export async function findAssets(args: { category: string; brief: string; constr
       mapped.matched.length ? `filters ${mapped.matched.join(", ")}` : "",
       hits.length ? `mentions ${hits.join(", ")}` : "",
     ].filter(Boolean).join("; ");
+    const url = pick(item, ["url", "itemUrl", "item_url", "link", "permalink"]) ?? "";
     return {
-      id: pick(item, ["id", "itemId", "item_id", "uuid", "humaneId"]) ?? "",
+      id: pick(item, ["id", "itemId", "item_id", "uuid", "humaneId"]) ?? deriveId(url),
       title,
-      url: pick(item, ["url", "itemUrl", "item_url", "link", "permalink"]) ?? "",
+      url,
       previewUrl: previewOf(item),
       category: args.category,
       whyItFits: why || `keyword match for "${args.brief}"`,
