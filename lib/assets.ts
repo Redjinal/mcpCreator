@@ -2,8 +2,8 @@
 // the results. Results live in memory for this request only.
 // Preview URLs are passed through as strings — the harness never fetches them.
 
-import { mapConstraints, filterFields } from "./mapping";
-import { rpc, searchTool } from "./upstream";
+import { mapConstraints, filterFields } from "./mapping.js";
+import { rpc, searchTool } from "./upstream.js";
 
 export type Asset = { id: string; title: string; url: string; previewUrl: string | null; category: string; whyItFits: string };
 
