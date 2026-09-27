@@ -84,11 +84,19 @@ const mcp = createMcpHandler(
   { serverInfo: { name: "envato-relay-harness", version: "0.1.0" } },
 );
 
+// Accept the token from any header a claude.ai custom connector can send:
+// Authorization (with or without a "Bearer " prefix), X-Auth-Token, or X-Api-Key.
+function presentedToken(req: Request): string | null {
+  const auth = req.headers.get("authorization");
+  if (auth) return (/^Bearer\s+(.+)$/i.exec(auth)?.[1] ?? auth).trim();
+  return (req.headers.get("x-auth-token") ?? req.headers.get("x-api-key"))?.trim() || null;
+}
+
 function authorized(req: Request): boolean {
   const expected = process.env.HARNESS_TOKEN;
-  const match = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") ?? "");
-  if (!expected || !match) return false;
-  const a = Buffer.from(match[1].trim()), b = Buffer.from(expected);
+  const provided = presentedToken(req);
+  if (!expected || !provided) return false;
+  const a = Buffer.from(provided), b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
