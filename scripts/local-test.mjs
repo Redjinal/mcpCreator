@@ -48,6 +48,16 @@ try {
   assert.equal((await rpc("initialize", {}, null)).status, 401); ok("no token → 401");
   assert.equal((await rpc("initialize", {}, "wrong")).status, 401); ok("wrong token → 401");
 
+  // Auth accepted from any claude.ai connector preset header, same token.
+  const rawPost = (headers) => fetch(url, { method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", ...headers },
+    body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "initialize", params: {} }) }).then((r) => r.status);
+  for (const h of [{ "x-auth-token": token }, { "x-api-key": token }, { authorization: token }]) {
+    assert.equal(await rawPost(h), 200, `${Object.keys(h)[0]} should authenticate`);
+  }
+  assert.equal(await rawPost({ "x-auth-token": "wrong" }), 401, "wrong x-auth-token → 401");
+  ok("alt auth headers (x-auth-token, x-api-key, bare Authorization) → 200; wrong → 401");
+
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "local-test", version: "0" } });
   assert.equal(init.result.serverInfo.name, "envato-relay-harness"); ok(`initialize → ${JSON.stringify(init.result.serverInfo)}`);
 
