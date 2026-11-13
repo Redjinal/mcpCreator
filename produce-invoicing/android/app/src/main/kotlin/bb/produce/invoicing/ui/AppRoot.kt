@@ -116,7 +116,17 @@ private fun Shell(session: Session) {
         add(TopLevel(Routes.CATALOGUE, "Catalogue", Icons.Filled.Person))
         add(TopLevel(Routes.SETTINGS, "Settings", Icons.Filled.Settings))
     }
+    val window = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize
+    // Landscape window (incl. phones, where height is short): side rail instead of a bottom bar.
+    val layout = if (window.width > window.height) {
+        androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType.NavigationRail
+    } else {
+        androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
+            androidx.compose.material3.adaptive.currentWindowAdaptiveInfo(),
+        )
+    }
     NavigationSuiteScaffold(
+        layoutType = layout,
         navigationSuiteItems = {
             items.forEach { item ->
                 item(

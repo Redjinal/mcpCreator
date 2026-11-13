@@ -5,6 +5,72 @@ Nothing is marked done on the basis of generated code alone.
 
 ---
 
+## Checkpoint — Task 03: Responsive field UI (2026-11-13)
+
+**Status: ACCEPTANCE GATE MET on JVM/Robolectric. Phone and tablet layouts were rendered and exercised in Robolectric, not on real devices. On-device checks are BLOCKED (hardware). Stopped for review — Task 04 not started.**
+
+### What was built (`android/app`, plus read side in `:core:data` and a layout in `:core:printing`)
+
+| Area | Implementation |
+|---|---|
+| Sign-in | `AuthGateway` seam. Dev builds: `DemoAuthGateway` (synthetic demo driver/owner, **no password, labelled as not authentication**). Pilot builds: `NotProvisionedAuthGateway`, which shows "This device is not provisioned… (Task 04)". The status screen doubles as the sign-in screen. |
+| Shell | `NavigationSuiteScaffold`: bottom bar in portrait, side rail whenever the window is wider than tall. List+detail split panes from 840 dp. Tabs: Home, New invoice (drivers), Invoices, Catalogue, Settings. |
+| Home | Today (Barbados date): issued count, sales, recorded paid, unpaid; invoices not synced and changes waiting to send; shift/vehicle; drafts with Continue/Discard. Owner: per-driver totals (only invoices on this device). |
+| New invoice | Customer picker (search + create offline); product picker (per-unit add, vehicle stock shown); lines with unit chips, qty field + −/+ (48 dp targets), price field, catalogue-price override warning, zero-price confirmation, undo on remove, stock-shortfall warning, custom lines. Total always visible; auto-save to Room (serialised by a mutex); review dialog ("number assigned when you issue"); issue via the Task 02 transaction; double-tap guarded in the UI and idempotent in the repository. Live preview pane on wide screens. |
+| Invoices | Search by `PRE-INV-SUF`, office reference, customer, driver or UUID; filters All / Unpaid / Not synced / Void. Rows show separate Issued/Void, payment, sync and print badges. |
+| Invoice detail | `PRE-INV-SUF` as the headline, driver name separate, "Office reference (internal)" = "Not assigned yet" until registered; three time fields; items, total, "tax not applied". Payment: mark paid (method + optional reference, full amount only, "this app does not process card or bank payments", card-number references refused); owner "mark unpaid" correction with reason; owner void with reason. |
+| 58 mm preview | `Receipt58` (32 columns; Original / COPY; VOID banner; internal ref only when registered). Print button **disabled** with an explanation until Tasks 06–07. |
+| Catalogue | Customers (search, create, detail with invoice history, "new invoice for customer"); products read-only with vehicle saleable/held quantities. |
+| Settings | Session, invoice-number allocation (lease), business (read-only), printers ("No printer set up…"), office server config, storage, waiting-to-send count, "Last successful sync: Never (not implemented, Task 05)", build. |
+| Read side | `FieldReadModel`: list rows with payment/print status derived in SQL. **Drivers only ever receive their own invoices** (also on direct detail access) — enforced in the data layer, not by hiding UI (invariant 6). Offline customer creation writes audit + `CUSTOMER_CREATED` outbox. |
+| Look | v4 colours; Public Sans bundled (OFL; `docs/licenses/PublicSans-OFL-LICENSE.md`); selected chips and navigation in v4 green tint; navigation surfaces in v4 warm neutrals. |
+
+No fake success states anywhere: "Synced to office" needs a stored server acknowledgement, and "Printed (confirmed)" needs a confirmed print attempt. Neither can happen yet, so the app shows "Not synced" and "Not printed".
+
+### Problems found by the UI tests and fixed
+1. **Tapping Home from the editor did nothing.** Top-level navigation used `saveState`/`restoreState`, which saved the editor's back stack under Home and restored it straight away. Removed (drafts are auto-saved anyway).
+2. **Dialogs with a text field never let Compose become idle** (payment, void). Experiments isolated it: M3 `AlertDialog` with an `OutlinedTextField`, and also a plain `Dialog` sized by the platform's default width. A `Dialog` with `usePlatformDefaultWidth = false` and an explicit width works. All text-input dialogs now use `FormDialog`. **I haven't confirmed whether this also happens on a real device** — check on hardware.
+3. **Phone landscape was cramped:** the bottom bar plus a fixed list header left room for one invoice. Now a side rail is used when the window is wider than tall, and the list header scrolls with the list.
+4. The detail badge first inferred sync state from the register reference; replaced with the stored `sync_state` and real print-attempt status.
+5. Test-side fixes: upper-case section labels (case-insensitive matchers), targeting the input instead of its label, and scrolling before clicking below-the-fold buttons.
+
+### Commands and results
+
+```
+cd android && ./gradlew assembleDevDebug assemblePilotDebug testDevDebugUnitTest testPilotDebugUnitTest \
+                         :core:data:testDebugUnitTest :core:printing:test lintDevDebug lintPilotDebug assembleDevDebugAndroidTest
+cd shared && ./gradlew test
+cd server && ./gradlew test installDist
+```
+
+| Suite | Result |
+|---|---|
+| `FieldFlowTest` (real `MainActivity` + Room + navigation): sign in → choose customer → add product → decimal qty → review → **double-tap issue** = 1 invoice, `DEMO-100-AB`; badges Issued / Unpaid / Not synced / Not printed; office ref "Not assigned yet"; mark paid Cash → "Paid · Cash", invoice total unchanged; list search by number and no-match; draft auto-saved and listed on Home; owner sign-in sees the driver's invoice, voids with reason; pilot build offers no sign-in, explains why, has no synthetic data | dev 3 passed + 1 skipped (pilot-only); pilot 1 passed + 3 skipped (dev-only) |
+| `LayoutScreenshotTest`: Home, Invoices, Detail, 58 mm preview, New invoice at phone portrait (411×891 dp), phone landscape (891×411), tablet portrait (800×1280), tablet landscape (1280×800) — 20 PNGs in `docs/evidence/task03/` | 4 passed (dev) |
+| `MainActivityStorageTest`, `AppConfigTest`, `SetupStatusScreenTest`, `SetupStatusScreenshotTest` | passed in both flavors |
+| `Receipt58Test` (≤ 32 columns for 1/8/30 lines with long names; number primary, driver separate; internal ref only when registered (wraps at 32); COPY top and bottom) | 4 passed |
+| `:core:data` (Task 02 suites) | 21 passed |
+| Shared domain | 174 passed |
+| Server (incl. Testcontainers PostgreSQL) | 8 passed |
+| Lint dev / pilot | 0 errors; warnings = baseline (`OldTargetApi`; dev-only `InsecureBaseConfiguration`) |
+
+Debug APK SHA-256 (not reproducible bit-for-bit; re-hash anything you distribute): dev `8a8f0b488f03373a5f06fcfc2936baba1a19294403dba7e7024da91528fa46e7`, pilot `78e15d31f5dcbbac8cce683343683d3ed61b910ad6ff96fba8238b5d096f124d`.
+
+Note: an earlier full run was killed at the 30-minute background limit while tests hung on the dialog problem (item 2 above). After the fix, every run above finished in under 3 minutes.
+
+### Open items / decisions for review
+- **BLOCKED: hardware.** Real phone/tablet checks of these layouts, TalkBack, font scaling and the dialog behaviour; on-device install.
+- Accepted payment methods: all except "None" are offered (docs/08 gate 2 open).
+- Owner-approved price overrides (D06) are not supported yet: any price that differs from the catalogue blocks issuing for everyone. Owner override flow: Task 08.
+- Not yet built: date-range filter, "recent" customers/products, owner editing of catalogue, customers and business (Task 08).
+- IBM Plex Mono is not bundled (no TTF from an allowed source); system monospace is used.
+- Home date is shown as ISO `2026-11-13`; v4 used `13 Nov 2026` — cosmetic.
+
+### Recommended next task
+**Task 04 — Identity, RBAC and fenced number allocation** (device enrollment, real sign-in replacing the demo gateway, server-issued driver leases and handoff). Awaiting approval.
+
+---
+
 ## Checkpoint — Task 02: Durable offline data (Room) (2026-11-13)
 
 **Status: ACCEPTANCE GATE MET on JVM/Robolectric (real SQLite engine). On-device instrumentation BLOCKED: no phone/emulator. Stopped for review — Task 03 not started.**

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -157,8 +159,15 @@ fun FormDialog(
     onConfirm: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(24.dp).widthIn(max = 560.dp).fillMaxWidth(),
+        ) {
             Column(Modifier.padding(20.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 content()
@@ -184,6 +193,6 @@ fun ReasonDialog(
     var reason by remember { mutableStateOf("") }
     FormDialog(title, onDismiss, confirmLabel, confirmEnabled = !requireReason || reason.isNotBlank(), onConfirm = { onConfirm(reason) }) {
         Text(body)
-        if (requireReason) OutlinedTextField(reason, { reason = it }, label = { Text("Reason (required)") }, modifier = Modifier.fillMaxWidth())
+        if (requireReason) OutlinedTextField(reason, { reason = it }, label = { Text("Reason (required)") }, modifier = Modifier.fillMaxWidth().testTag("reason-input"))
     }
 }

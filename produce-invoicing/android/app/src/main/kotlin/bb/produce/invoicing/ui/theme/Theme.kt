@@ -41,6 +41,9 @@ private val LightColors = lightColorScheme(
     primaryContainer = PiColors.ForestTint,
     onPrimaryContainer = PiColors.ForestDeep,
     secondary = PiColors.ForestDark,
+    // Selected chips / navigation indicator: v4 green tint instead of Material's default lavender.
+    secondaryContainer = PiColors.ForestTint,
+    onSecondaryContainer = PiColors.ForestDeep,
     tertiary = PiColors.Amber,
     tertiaryContainer = PiColors.AmberTint,
     error = PiColors.Red,
@@ -49,6 +52,12 @@ private val LightColors = lightColorScheme(
     surface = PiColors.Surface,
     onSurface = PiColors.Ink,
     surfaceVariant = PiColors.SurfaceVariant,
+    // Navigation bars, menus and sheets use the surface-container family: v4 warm neutrals, not lavender.
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFFAF8F3),
+    surfaceContainer = Color(0xFFF1EEE6),
+    surfaceContainerHigh = Color(0xFFEEEAE1),
+    surfaceContainerHighest = PiColors.SurfaceVariant,
     onSurfaceVariant = PiColors.InkMuted,
     outline = PiColors.BorderStrong,
     outlineVariant = PiColors.Border,

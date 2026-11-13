@@ -79,23 +79,29 @@ fun InvoicesScreen(session: Session, onOpen: (InvoiceId) -> Unit, onPreview: (In
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 840.dp
         Row(Modifier.fillMaxSize()) {
-            Column(Modifier.then(if (wide) Modifier.width(420.dp) else Modifier.weight(1f)).fillMaxHeight().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (session.isOwner) "All invoices" else "My invoices", style = MaterialTheme.typography.headlineSmall)
-                OutlinedTextField(ui.query, vm::setQuery, label = { Text("Search number, office ref, customer") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("invoice-search"))
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    InvoiceFilter.entries.forEach { f -> FilterChip(selected = ui.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) }) }
+            // Header scrolls with the list so short (landscape phone) screens still show several invoices.
+            LazyColumn(
+                Modifier.then(if (wide) Modifier.width(420.dp) else Modifier.weight(1f)).fillMaxHeight(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item { Text(if (session.isOwner) "All invoices" else "My invoices", style = MaterialTheme.typography.headlineSmall) }
+                item {
+                    OutlinedTextField(ui.query, vm::setQuery, label = { Text("Search number, office ref, customer") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("invoice-search"))
+                }
+                item {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        InvoiceFilter.entries.forEach { f -> FilterChip(selected = ui.filter == f, onClick = { vm.setFilter(f) }, label = { Text(f.label) }) }
+                    }
                 }
                 when {
                     ui.loading -> Unit
-                    ui.totalCount == 0 -> EmptyState("No invoices yet", "Issued invoices appear here, newest first.")
-                    ui.rows.isEmpty() -> EmptyState("No matches", "Try another search or filter.")
-                    else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(ui.rows, key = { it.id.toString() }) { row ->
-                            InvoiceRowCard(row, session, selected = wide && selected == row.id.toString()) {
-                                if (wide) selected = row.id.toString() else onOpen(row.id)
-                            }
+                    ui.totalCount == 0 -> item { EmptyState("No invoices yet", "Issued invoices appear here, newest first.") }
+                    ui.rows.isEmpty() -> item { EmptyState("No matches", "Try another search or filter.") }
+                    else -> items(ui.rows, key = { it.id.toString() }) { row ->
+                        InvoiceRowCard(row, session, selected = wide && selected == row.id.toString()) {
+                            if (wide) selected = row.id.toString() else onOpen(row.id)
                         }
                     }
                 }
@@ -245,5 +251,3 @@ private fun PayDialog(methods: List<PaymentMethod>, total: String, onConfirm: (P
     }
 }
 
-@Suppress("unused")
-private val listPadding = PaddingValues(16.dp)

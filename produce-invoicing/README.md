@@ -1,6 +1,6 @@
 # Produce Invoicing — Claude Code MVP Handoff v3
 
-> **Implementation status:** Tasks 00 (scaffold), 01 (domain, money, V3 numbering) and 02 (Room offline storage, atomic issue transaction) complete — see `IMPLEMENTATION_LOG.md`. No invoicing UI yet (Task 03).
+> **Implementation status:** Tasks 00–03 complete (scaffold; domain and V3 numbering; Room offline storage with atomic issue; responsive field UI) — see `IMPLEMENTATION_LOG.md`. Sign-in is a developer stub until Task 04; no sync or printing yet.
 
 ## Repository layout (implementation)
 

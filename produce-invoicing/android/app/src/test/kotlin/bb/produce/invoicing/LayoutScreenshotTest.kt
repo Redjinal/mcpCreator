@@ -8,6 +8,8 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import bb.produce.invoicing.core.data.DemoData
 import bb.produce.invoicing.core.data.DemoSeeder
@@ -72,9 +74,16 @@ class LayoutScreenshotTest {
         waitText("Issued today"); shot("$prefix-1-home")
         compose.onAllNodes(hasTestTag("nav-Invoices"))[0].performClick()
         waitText("DEMO-101-AB"); shot("$prefix-2-invoices")
+        compose.onAllNodes(hasTestTag("invoice-row-DEMO-100-AB")).let { rows ->
+            // On short screens the second row may be below the fold; search narrows the list to it.
+            if (rows.fetchSemanticsNodes().isEmpty()) {
+                compose.onAllNodes(hasTestTag("invoice-search"))[0].performTextReplacement("100-AB")
+                waitText("DEMO-100-AB")
+            }
+        }
         compose.onAllNodes(hasTestTag("invoice-row-DEMO-100-AB"))[0].performClick()
         waitText("Office reference (internal)"); shot("$prefix-3-detail")
-        compose.onAllNodes(hasText("58 mm print preview"))[0].performClick()
+        compose.onAllNodes(hasText("58 mm print preview"))[0].performScrollTo().performClick()
         waitText("Invoice: DEMO-100-AB"); shot("$prefix-4-receipt")
         compose.onAllNodes(hasTestTag("nav-New invoice"))[0].performClick()
         waitText("Choose customer"); shot("$prefix-5-new-invoice")
