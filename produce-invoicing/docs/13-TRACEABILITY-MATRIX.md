@@ -1,4 +1,4 @@
-# Traceability matrix — v4 prototype → native MVP (Task 00, 2026-11-13)
+# Traceability matrix — v4 prototype → native MVP (Task 00, updated Task 01, 2026-11-13)
 
 Source inventory: `docs/00-V4-PROTOTYPE-INVENTORY.md`. Binding rules: `CLAUDE.md`, docs 08–12.
 "Status" is the state **in this repository today**. Nothing below is implemented unless it says so.
@@ -34,6 +34,8 @@ Legend: **Scaffold** = module/boundary exists, no behaviour. **Not started** = p
 | Presenter bar, notes drawer, dataMode, "Reset sample data" | — | — | — | **Replaced** | Prototype-only. No demo controls in pilot build (docs/01). Synthetic seed exists server-side only behind `PI_SEED_SYNTHETIC=true`. |
 
 ## 2. Data objects
+
+Task 01 status: every row below now has a **pure domain model with unit tests** in `shared/domain` (`bb.produce.invoicing.domain.*`). Persistence (Room/PostgreSQL), UI and sync are still not started.
 
 | v4 object / field | Native representation | Task |
 |---|---|---|

@@ -5,6 +5,77 @@ Nothing is marked done on the basis of generated code alone.
 
 ---
 
+## Checkpoint — Task 01: Domain models and arithmetic (2026-11-13)
+
+**Status: ACCEPTANCE GATE MET (pure domain, unit-tested). Stopped for review — Task 02 not started.**
+
+All code is in `shared/domain` (`bb.produce.invoicing.domain.*`): plain Kotlin/JVM with no Android, database or network dependencies. Both the app and the server compile against it. Nothing in this task is persisted yet — durability, the atomic Room transaction and the server register are Tasks 02/04/05.
+
+### What was built
+
+| Package | Contents | Key rules enforced |
+|---|---|---|
+| `common` | UUID value classes (`InvoiceId`, `LineId`, `EventId`, …), `Actor`/`Role`, `Outcome`, `BarbadosTime` | UTC instants; display in `America/Barbados` (`13 Nov 2026, 09:00 AST`). |
+| `money` | `Money` (Long cents + `Currency.BBD`), `Quantity` (BigDecimal, scale 3), `UnitPrice`, `UnitCode`, `LineMath`, `RoundingPolicy`, `TaxSnapshot` | No floating point. Overflow-checked arithmetic. Quantity > 0, ≤ 3 decimals, ≤ 99,999. Unit price 0–999,999.00, ≤ 2 decimals. Line total = qty × price, **HALF_UP to the cent per line, then summed** — same as v4 `cents()`. Tax: `NotApplied` only. |
+| `identity` | `BusinessCode`, `DriverCode`, `DriverSequence`, `CustomerInvoiceNumber` (`PRE-INV-SUF`), `RegisterSequence`, `RegisterReference` (`PRE-N`), `DriverSnapshot`, `DriverSequenceLease` | Codes `[A-Z0-9]`, no hyphens. Sequence 1..999,999,999, overflow is an explicit error. Strict canonical parsing (no leading zeros, so `BGI-0100-AB` cannot alias `BGI-100-AB`). `PRE-N` and `PRE-INV-SUF` cannot be confused. Lease is fenced by device + driver code + epoch; revoked/expired/exhausted leases cannot issue. **No number blocks.** |
+| `catalogue` | `Business`, `Customer`, `Product`, `ProductUnitPrice`, `CatalogueVersion`, snapshots, `StockConversion`, `ConversionTable`, `BaseQuantity` | Products list their permitted units; `price == null` = price entered on invoice. Conversions are explicit, versioned and exact (≤ 6-decimal factor); a missing conversion is an error, never 1:1. |
+| `invoice` | `InvoiceDraft`/`DraftLine` (editable), `DraftValidator`, `InvoiceIssuer`, `IssuedInvoice`/`IssuedLine`, `ServerRegistration`, `VoidRecord`, `InvoiceStatus`, `SyncState` | Draft edits return new values. Zero price needs confirmation; editing the price clears it. Changing unit re-applies the catalogue price and does **not** convert quantity. Catalogue price override needs authorisation (D06). **Issue is one pure step** that allocates the next per-driver sequence from the lease and freezes business/customer/driver/line/price/tax snapshots, actor, device, lease epoch, catalogue version and rounding policy id; it returns the invoice **and** the advanced lease so Task 02 can persist both in one transaction. `IssuedInvoice` has no public constructor or `copy`; lines are an unmodifiable list. Registration attaches `PRE-N` once (identical replay is a no-op; a different reference is `CONFLICTING_REGISTER_REFERENCE`); the customer number never changes. Void: owner only, reason required, once; number and values kept. Three timestamps plus a device-clock-ahead flag. |
+| `payment` | `PaymentStatus`, `PaymentMethod`, `PaymentEvent`, `PaymentLedger`, `PaymentSummary`, `ExternalReference` | UNPAID by default. PAID needs a non-`NONE`, enabled method and amount == outstanding (no partial/over/mixed). Corrections are reversal events (owner only, reason required). Recording is idempotent by event id. Paid totals are a breakdown, never added to sales. External references with a Luhn-valid 13–19 digit run (likely a card number) are rejected. |
+| `stock` | `StockMovementKind`, `StockBucket`, `ReturnDisposition`, `StockMovement`, `StockLedger`, `SaleDebits`, `StockPermissions`, `NegativeStockPolicy`, `ShiftStatus`, `ShiftLifecycle`, `CloseReadiness` | Append-only, idempotent ledger; one SALE_DEBIT per invoice line (`SaleReference(invoiceId, lineId)`). Returns go to QUARANTINE. Drivers cannot load, top up, release quarantine or adjust counts. Negative stock policy must be passed explicitly. Shift approval is refused while unsynced events, conflicts or unexplained variances remain. |
+| `printing` | `PrinterProfile` (58 mm only), `Certification`, `PrinterTransport`, `PrintAttempt`, `PrintStatus`, `PrintEvidence` | `TRANSPORT_SENT` ≠ printed. CONFIRMED only by device status (if the profile supports it) or operator. Interrupted send → UNCERTAIN; the next print is a COPY that needs a reason. Profiles are `Unverified` until certified with evidence. |
+| `audit` | `AuditEvent`, `AuditAction`, `OutboxEvent`, `OutboxEventType` | Audit details refuse PII/secret keys. Outbox retries count up; ACK is idempotent. |
+
+### Decisions needing client/accountant confirmation (all reversible, all flagged in code)
+
+| Item | Provisional choice | Where |
+|---|---|---|
+| Rounding | HALF_UP per line to the cent, then sum (matches v4). `RoundingPolicy.APPROVED_BY_ACCOUNTANT = false`; the policy id is frozen on each invoice. | `money/LineMath.kt` |
+| Tax/VAT | Not applied; no rate invented. | `TaxSnapshot.NotApplied` |
+| Limits | Qty ≤ 99,999 (3 dp); unit price ≤ 999,999.00; invoice total ≤ BBD 9,999,999.99; driver sequence ≤ 999,999,999. | `Quantity`, `UnitPrice`, `DraftValidator`, `DriverSequence` |
+| Payment reversal | Owner only. | `PaymentLedger.reversePaid` |
+| "Unpaid with expected method" | Not modelled (docs/08 gate 2 open). | — |
+| Quarantine release | Added `QUARANTINE_RELEASE` movement kind (not in the docs/09 list, which has no way to release a resellable return). | `stock/Stock.kt` |
+| Negative stock | No default; caller must choose `BLOCK` or `ALLOW_AND_FLAG` (gate 5). | `NegativeStockPolicy` |
+| Custom (non-catalogue) lines | Allowed, priced manually, **not stock-tracked**. | `SaleDebits` |
+| Who may void | Owner only, reason required (D07). | `IssuedInvoice.void` |
+
+### Commands and results
+
+```
+cd shared  && ./gradlew test
+cd android && ./gradlew assembleDevDebug assemblePilotDebug testDevDebugUnitTest testPilotDebugUnitTest lintPilotDebug
+cd server  && ./gradlew test installDist
+```
+
+| Suite | Tests | Result |
+|---|---|---|
+| `MoneyQuantityTest` (0.1+0.2, formatting, overflow, parsing, invalid quantities/prices/units) | 45 | passed |
+| `LineMathTest` (HALF_UP cases incl. half-cent; **20,000 random lines match the v4 `cents()` formula**; policy flags) | 14 | passed |
+| `InvoiceIdentityTest` (BGI-100-AB vs BGI-100-FD, PRE-N separation, invalid codes, zero/negative/overflow, 50k unique UUIDs, lease fencing) | 41 | passed |
+| `DraftAndIssueTest` (quantity changes, invalid units, zero-price confirmation, price override, immutability, A2 2×25 offline, A5, N01, N09, N11, N13, registration idempotency, void) | 24 | passed |
+| `PaymentsTest` (P1, P2, P3, method rules, 10× replay, void reporting, card-number rejection, long-reference regression) | 17 | passed |
+| `StockAndShiftTest` (S1 20−5−1 = 14 saleable / 2 quarantined, S2 10× replay, conversions 2 case → 24 each and 1.5 kg → 3.30693 lb, permissions, negative policy, reversal, S5 approval gate) | 12 | passed |
+| `PrintingAuditTest` (58 mm only, sent ≠ printed, uncertain → COPY with reason, audit PII guard, outbox ACK idempotency, Barbados time) | 7 | passed |
+| `ServerEndpointTest` (Task 00) | 13 | passed |
+| **shared total** | **173** | **all passed** |
+| Android build + unit tests (both flavors) + lint pilot | — | BUILD SUCCESSFUL; lint 0 errors, 1 warning (`OldTargetApi`, intentional) |
+| Server tests (incl. Testcontainers PostgreSQL) + installDist | 8 | passed |
+
+Found and fixed during this task:
+- **Card-number check too aggressive.** The first version tested every 13–19 digit window inside a longer digit run, so about 1 in 10 windows passes Luhn by chance and long bank references would be falsely rejected. Now only whole runs are tested, with a regression case for a 23-digit reference.
+- A test-data bug (`1,000.00` split by the CSV source) — test fixed, code unchanged.
+- **Environment:** this session's container came back with stale `docker.pid` / `containerd.pid` files, so the daemon would not start and `MigrationIT` failed with "Could not find a valid Docker environment". I removed the two stale pid files (their PIDs no longer existed), started `dockerd`, and the server suite then passed. No code change.
+
+`grep` for number-block remnants (`number block`, `nextSeq`, `padStart`, `INV-0`) in active source: only per-driver `nextSequence` and comments stating there are no blocks.
+
+### Not covered by Task 01 (by design)
+Persistence and the atomic Room transaction (02), UI (03), provisioning and server-issued leases (04), server registration/concurrency, i.e. N02–N06 and N16 (05), receipt rendering (06), real printers (07, BLOCKED: hardware). N07, N08 and N18 need durable storage and are verified in Task 02.
+
+### Recommended next task
+**Task 02 — Room offline persistence**: entities/DAOs/migrations for these models, and ONE transaction that persists the issued invoice + advanced lease + SALE_DEBIT movements + audit + outbox. Awaiting approval.
+
+---
+
 ## Checkpoint — Task 00: Audit and scaffold (2026-11-13)
 
 **Status: ACCEPTANCE GATE MET (build/scaffold). Stopped for review — Task 01 not started.**
