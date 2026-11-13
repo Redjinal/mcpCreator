@@ -33,7 +33,7 @@ import bb.produce.invoicing.ui.theme.ProduceInvoicingTheme
  * those require the real implementations from later tasks.
  */
 @Composable
-fun SetupStatusScreen(config: AppConfig, modifier: Modifier = Modifier) {
+fun SetupStatusScreen(config: AppConfig, modifier: Modifier = Modifier, storage: String = "Not opened") {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -56,13 +56,18 @@ fun SetupStatusScreen(config: AppConfig, modifier: Modifier = Modifier) {
                 )
                 StatusRow("Build", "${config.flavor} · ${config.versionName}")
                 StatusRow("Office server", serverStatus(config.server), testTag = "server-status")
-                StatusRow("Local invoice storage", "Not implemented yet (Task 02)")
+                StatusRow("Local invoice storage", storage, testTag = "storage-status")
                 StatusRow("Printer", "No printer configured (Task 06/07)")
                 StatusRow("Sync", "Not implemented yet (Task 05)")
             }
         }
     }
 }
+
+/** Honest storage line: counts only, "waiting to sync" never implies anything reached the office. */
+fun storageStatus(s: bb.produce.invoicing.core.data.InvoicingRepository.StorageSummary, synthetic: Boolean): String =
+    "Ready · schema v${s.schemaVersion} · ${s.invoices} issued · ${s.drafts} drafts · ${s.pendingOutbox} waiting to sync" +
+        if (synthetic) " · SYNTHETIC demo data" else ""
 
 internal fun serverStatus(result: ParseResult): String = when (result) {
     ParseResult.NotConfigured -> "Not configured"

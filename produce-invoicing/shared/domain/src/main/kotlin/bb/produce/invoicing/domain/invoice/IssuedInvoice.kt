@@ -137,8 +137,48 @@ data class IssuedInvoice private constructor(
         else -> Outcome.Ok(copy(voidRecord = VoidRecord(reason.trim(), actor.userId, actor.deviceId, at)))
     }
 
-    internal companion object {
-        fun create(
+    companion object {
+        /**
+         * Persistence rehydration ONLY (Room/PostgreSQL rows → domain). Re-runs every construction check,
+         * recomputes totals from the lines and requires them to equal the stored totals, so a corrupted or
+         * hand-edited row cannot become a valid invoice.
+         */
+        fun restore(
+            id: InvoiceId,
+            sourceDraftId: DraftId,
+            number: CustomerInvoiceNumber,
+            business: BusinessSnapshot,
+            customer: CustomerSnapshot,
+            driver: DriverSnapshot,
+            issuedBy: UserId,
+            deviceId: DeviceId,
+            leaseEpoch: Long,
+            catalogueVersion: CatalogueVersion,
+            roundingPolicyId: String,
+            tax: TaxSnapshot,
+            lines: List<IssuedLine>,
+            issuedAtDevice: Instant,
+            storedSubtotal: Money,
+            storedTaxTotal: Money,
+            storedTotal: Money,
+            registration: ServerRegistration?,
+            voidRecord: VoidRecord?,
+        ): IssuedInvoice {
+            val base = create(
+                id, sourceDraftId, number, business, customer, driver, issuedBy, deviceId, leaseEpoch,
+                catalogueVersion, roundingPolicyId, tax, lines, issuedAtDevice,
+            )
+            require(base.subtotal == storedSubtotal && base.taxTotal == storedTaxTotal && base.total == storedTotal) {
+                "Stored totals do not match the invoice lines for $number"
+            }
+            if (registration != null) {
+                require(registration.invoiceId == id && registration.customerInvoiceNumber == number) { "Registration belongs to another invoice" }
+                require(registration.registerReference.businessCode == number.businessCode) { "Register prefix mismatch" }
+            }
+            return base.copy(registration = registration, voidRecord = voidRecord)
+        }
+
+        internal fun create(
             id: InvoiceId,
             sourceDraftId: DraftId,
             number: CustomerInvoiceNumber,

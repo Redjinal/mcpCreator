@@ -33,6 +33,8 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("String", "API_BASE_URL", apiBaseUrl("dev").asBuildConfigString())
             buildConfigField("boolean", "ALLOW_CLEARTEXT", "true")
+            // Synthetic demo data (Task 02 seed). NEVER enabled for pilot builds.
+            buildConfigField("boolean", "SEED_SYNTHETIC_DATA", "true")
             resValue("string", "app_name", "Produce Invoicing (dev)")
         }
         // Office-LAN pilot. HTTPS only; URL supplied at build time (and, from Task 04, provisioning).
@@ -40,6 +42,7 @@ android {
             dimension = "environment"
             buildConfigField("String", "API_BASE_URL", apiBaseUrl("pilot").asBuildConfigString())
             buildConfigField("boolean", "ALLOW_CLEARTEXT", "false")
+            buildConfigField("boolean", "SEED_SYNTHETIC_DATA", "false")
             resValue("string", "app_name", "Produce Invoicing")
         }
     }

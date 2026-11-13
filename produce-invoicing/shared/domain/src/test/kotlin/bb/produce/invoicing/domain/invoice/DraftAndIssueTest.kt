@@ -335,6 +335,18 @@ class DraftAndIssueTest {
     }
 
     @Test
+    fun `restore round-trips and rejects stored totals that do not match the lines`() {
+        val inv = Fx.issue().invoice.let { it.withRegistration(registration(it, 3)).getOrThrow() }
+        fun restore(total: Money) = IssuedInvoice.restore(
+            inv.id, inv.sourceDraftId, inv.number, inv.business, inv.customer, inv.driver, inv.issuedBy, inv.deviceId,
+            inv.leaseEpoch, inv.catalogueVersion, inv.roundingPolicyId, inv.tax, inv.lines, inv.issuedAtDevice,
+            inv.subtotal, inv.taxTotal, total, inv.registration, inv.voidRecord,
+        )
+        assertEquals(inv, restore(inv.total))
+        assertThrows<IllegalArgumentException> { restore(inv.total + Money.ofMinor(1)) }
+    }
+
+    @Test
     fun `products with duplicate units cannot be defined`() {
         assertThrows<IllegalArgumentException> {
             Product(Fx.tomatoes.id, Fx.businessId, "X", "X", listOf(ProductUnitPrice(Fx.lb, null), ProductUnitPrice(Fx.lb, null)))

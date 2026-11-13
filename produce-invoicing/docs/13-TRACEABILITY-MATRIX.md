@@ -1,4 +1,4 @@
-# Traceability matrix — v4 prototype → native MVP (Task 00, updated Task 01, 2026-11-13)
+# Traceability matrix — v4 prototype → native MVP (Task 00, updated Tasks 01–02, 2026-11-13)
 
 Source inventory: `docs/00-V4-PROTOTYPE-INVENTORY.md`. Binding rules: `CLAUDE.md`, docs 08–12.
 "Status" is the state **in this repository today**. Nothing below is implemented unless it says so.
@@ -16,7 +16,7 @@ Legend: **Scaffold** = module/boundary exists, no behaviour. **Not started** = p
 | `step:'review'` / live preview pane | Review & issue; tablet live preview | Invoice snapshot builder | 03 | Not started | Preview must show `PRE-INV-SUF` "assigned when issued", never a guessed number. |
 | `sheet:'customer'` | Customer picker (search, recent) | Customer DAO | 03 | Not started | "Recent" was *Proposed* in v4 — confirm with client. |
 | `sheet:'product'` | Product picker (per-unit add, custom line) | Product/price catalogue version | 03 | Not started | Custom-line policy and price override need D06 confirmation. |
-| `modal.type:'issue'` | Issue confirmation dialog | **Atomic Room transaction**: driver sequence ++, UUID, snapshots, SALE_DEBIT, audit, outbox | 02, 04, 11 | Not started | Double-tap guard via action token (N18). Number = `PRE-INV-SUF`, not `INV-00129`. |
+| `modal.type:'issue'` | Issue confirmation dialog | **Atomic Room transaction**: driver sequence ++, UUID, snapshots, SALE_DEBIT, audit, outbox | 02, 04, 11 | Data layer **implemented** (Task 02); dialog not started | Double-tap guard via action token (N18). Number = `PRE-INV-SUF`, not `INV-00129`. |
 | `modal.type:'offlineIssue'` ("Issuing waits for a connection") | — | — | — | **Replaced** | Offline issuing is a core requirement (A1/A2); drivers issue fully offline under a fenced lease. |
 | `screen:'invoices'` (+ filters, range popover) | Invoice list/search | Invoice queries by UUID; search by `PRE-INV-SUF`, `PRE-N`, UUID | 03, 08 | Not started | Separate badges for issue / sync / print status (docs/06). |
 | `showDaily` (owner daily review) | Owner daily summary per driver | Server daily summary; local pending marked | 08, 12 | Not started | Totals must not double count payments (docs/09). |
@@ -35,7 +35,7 @@ Legend: **Scaffold** = module/boundary exists, no behaviour. **Not started** = p
 
 ## 2. Data objects
 
-Task 01 status: every row below now has a **pure domain model with unit tests** in `shared/domain` (`bb.produce.invoicing.domain.*`). Persistence (Room/PostgreSQL), UI and sync are still not started.
+Task 01 status: every row below now has a **pure domain model with unit tests** in `shared/domain` (`bb.produce.invoicing.domain.*`). Task 02: all of these are persisted in Room (`android/core/data`, schema v2) with an atomic issue transaction; PostgreSQL storage, UI and sync are still not started.
 
 | v4 object / field | Native representation | Task |
 |---|---|---|

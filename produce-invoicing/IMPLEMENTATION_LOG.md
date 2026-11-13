@@ -5,6 +5,95 @@ Nothing is marked done on the basis of generated code alone.
 
 ---
 
+## Checkpoint — Task 02: Durable offline data (Room) (2026-11-13)
+
+**Status: ACCEPTANCE GATE MET on JVM/Robolectric (real SQLite engine). On-device instrumentation BLOCKED: no phone/emulator. Stopped for review — Task 03 not started.**
+
+### What was built (`android/core/data`)
+
+| File | Contents |
+|---|---|
+| `db/EntitiesV1.kt` | Schema v1: `device_identity`, `business`, `driver_lease`, `customer`, `product`, `product_unit_price`, `draft`, `draft_line`, `invoice`, `invoice_line`, `audit_event`, `outbox_event`. |
+| `db/EntitiesV2.kt` | Schema v2 (V2 scope): `location`, `shift`, `stock_conversion`, `stock_movement`, `payment_event`, `return_intake`, `stock_count`, `printer_profile`, `print_attempt`; plus `business.negative_stock_policy`. |
+| `db/Schema.kt`, `db/MigrationSql.kt` | 26 integrity triggers; `MIGRATION_1_2` (25 statements **generated from the exported `1.json`/`2.json`**, so it matches Room's expected schema exactly). |
+| `db/Daos.kt`, `db/Mappers.kt` | DAOs; row↔domain mapping. Issued invoices are read back through `IssuedInvoice.restore`, which recomputes totals (new in the domain). |
+| `InvoicingRepository.kt` | Drafts (atomic save, refuses to resurrect an issued draft), **the issue transaction**, server-ACK registration, void, payment events, outbox, storage summary. |
+| `DemoSeeder.kt` | SYNTHETIC demo data (business `DEMO`, 3 customers, 4 products, conversions, van, OPEN shift, opening load, driver `AB` lease from 100 bound to this device). Dev flavor only. |
+| `schemas/…/1.json`, `2.json` | Exported Room schemas (used by `MigrationTestHelper`). |
+
+**The issue transaction** (`InvoicingRepository.issue`), one Room transaction:
+1. If an invoice already exists for this draft, return it (`AlreadyIssued`) — double-tap safe (N18).
+2. Load draft, business, this driver's lease, catalogue, customer, the driver's OPEN shift on this device, conversions.
+3. Pure domain step: validate, allocate the next per-driver number from the lease, freeze snapshots.
+4. Convert lines to base units and check them against the van's stock ledger with the business's negative-stock policy.
+5. Write, in order: invoice → lines → **compare-and-set** lease advance (`WHERE next_sequence = :expected AND epoch = :epoch AND revoked = 0`; anything but 1 row rolls back) → SALE_DEBIT movements → audit → outbox (`INVOICE_ISSUED` + one `STOCK_MOVEMENT` per debit) → delete draft.
+Any rejection or exception writes nothing.
+
+**Database-level guarantees (SQLite triggers + unique indexes)** — hold even against raw SQL:
+- Issued invoice snapshot columns can't change; invoices and lines can't be deleted.
+- Register reference: set once, all four fields together, prefix must equal the business code.
+- Void is final.
+- Unique `(business, driver_code, driver_sequence)`, `(business, customer_invoice_number)`, `(business, register_sequence)`, `source_draft_id`.
+- Driver lease: sequence and epoch never decrease; identity fixed; never deleted.
+- `stock_movement`, `payment_event`, `audit_event`, `return_intake`, `stock_count`: append-only. One SALE_DEBIT per invoice line; one reversal per payment event.
+- One active shift per vehicle and per driver.
+- Foreign keys enforced.
+- Triggers are re-asserted (`IF NOT EXISTS`) on every open, including after migration.
+
+**App wiring:** `ProduceInvoicingApplication` holds the database (explicit DI). Dev builds seed synthetic data (`BuildConfig.SEED_SYNTHETIC_DATA`, false for pilot). The status screen now shows real counts: `Ready · schema v2 · 0 issued · 0 drafts · 0 waiting to sync`. No destructive migration fallback is configured — a missing migration crashes loudly instead of wiping unsynced records.
+
+### Decisions (flag for review)
+
+| Decision | Why | Reversible? |
+|---|---|---|
+| Issuing requires the driver's **OPEN shift** on this device | Invariant 11: the SALE_DEBIT must be written in the same transaction, and needs a vehicle/shift. | Yes |
+| `negative_stock_policy` stored per business; migration default and demo seed = `BLOCK` | Client gate 5 is open; BLOCK is the conservative default (it can stop a sale when van stock is short). | Yes, one column |
+| An injected failure leaves the number **unused**; the next issue reuses it | It was never committed or printed. Only committed numbers are never reused (docs/11). | — |
+| Instants stored as epoch milliseconds; the repository truncates its clock to ms | Exact round-trip of issued invoices. | — |
+| Outbox rows carry type + aggregate id (no payload copy) | Issued records are immutable, so the uploader can read them at send time (Task 05). | Yes |
+
+### Commands and results
+
+```
+cd shared  && ./gradlew test
+cd android && ./gradlew assembleDevDebug assemblePilotDebug testDevDebugUnitTest testPilotDebugUnitTest \
+                         :core:data:testDebugUnitTest lintDevDebug lintPilotDebug assembleDevDebugAndroidTest
+cd server  && ./gradlew test installDist
+```
+
+| Suite | Tests | Result |
+|---|---|---|
+| `IssueTransactionTest`: full write set; **rollback at each of the 7 write steps** (no rows, lease still 100, draft kept); **N18** 8 concurrent issues of one draft → 1 Issued + 7 AlreadyIssued; **N07/N08** draft and invoice survive close/reopen and the sequence continues next day (101, 102); rejections write nothing (no customer, insufficient stock, revoked lease, no open shift, missing conversion); payment + stock events survive restart and 10× replay adds nothing; outbox ACK idempotent | 9 | passed |
+| `SchemaConstraintsTest`: immutability, register-once/prefix, void-final, uniqueness (incl. N06 locally), forged totals detected on read, lease monotonic/fixed/undeletable, append-only ledgers, duplicate SALE_DEBIT refused (S2), one active shift per vehicle/driver (S4), FKs | 8 | passed |
+| `RegistrationVoidTest`: register once / identical replay no-op / conflict refused / unknown invoice; survives restart with all 3 timestamps; void owner-only, audited, queued, number kept, not recycled (N13); N09 driver rename | 3 | passed |
+| `MigrationTest`: real v1 DB from `1.json` with a v1 invoice, lease and outbox → `MIGRATION_1_2` → validated against `2.json`; data intact, policy defaults to BLOCK, triggers present; production builder reads it and immutability holds | 1 | passed |
+| App `MainActivityStorageTest` (real activity opens Room; synthetic seed only in dev) + earlier app tests, ×2 flavors | 10 + 10 | passed |
+| Shared domain (incl. new `restore` test) | 174 | passed |
+| Server (incl. Testcontainers PostgreSQL) | 8 | passed |
+| Lint dev / pilot | — | 0 errors; warnings unchanged (`OldTargetApi`, dev-only `InsecureBaseConfiguration`) |
+
+**Mutation checks (to prove the tests can fail).** I ran each one temporarily and then reverted it:
+- Disabling the trigger callback made 6 `SchemaConstraintsTest` tests fail.
+- Removing the transaction around `issue` made the rollback and N18 tests fail.
+
+Debug APK SHA-256 (rebuilds are not bit-for-bit reproducible; re-hash anything you distribute):
+dev `81ee9db055cfa99132a465144c37353d9c3109a9ba695bf230c37f5de517cb84`, pilot `b617176d990d5b8ea36d24b3dc0e5512620341d3dab38ed9832537e486e602ce`.
+
+UI evidence: `docs/evidence/task02/` (JVM renders of the status screen with the storage line).
+
+### Environment notes
+- KSP 2.3.13 works with AGP 9's built-in Kotlin (no extra flags).
+- After a container restore, Docker would not start: `/var/run/docker.pid` and `containerd.pid` named PIDs that had been **recycled by unrelated processes** (one was a Gradle daemon thread). I removed a pid file only after checking that `/proc/<pid>/cmdline` was not dockerd/containerd. No process was killed.
+
+### Blockers / not covered
+- **BLOCKED: hardware** — the same scenarios as on-device instrumentation (real app kill during issue, reboot). Robolectric uses a real SQLite engine, but not the device's storage stack or process death. True process kill mid-transaction relies on SQLite's journal atomicity; it is not simulated here beyond injected exceptions.
+- Lease provisioning, revocation sync and device handoff — Task 04. The server register (N02–N06, N16) — Task 05. Print attempts and printer profiles have tables but no flow — Task 06. Returns, counts and shift transitions — Tasks 11/12.
+
+### Recommended next task
+**Task 03 — Responsive field UI** on top of this repository (drafts, issue, invoice list/detail, customers/products, owner shell). Awaiting approval.
+
+---
+
 ## Checkpoint — Task 01: Domain models and arithmetic (2026-11-13)
 
 **Status: ACCEPTANCE GATE MET (pure domain, unit-tested). Stopped for review — Task 02 not started.**

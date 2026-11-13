@@ -39,7 +39,10 @@ class SetupStatusScreenshotTest {
     )
 
     private fun capture(name: String, config: AppConfig) {
-        compose.setContent { ProduceInvoicingTheme { SetupStatusScreen(config) } }
+        val storage = storageStatus(
+            bb.produce.invoicing.core.data.InvoicingRepository.StorageSummary(2, 0, 0, 0), synthetic = config.flavor == "dev",
+        )
+        compose.setContent { ProduceInvoicingTheme { SetupStatusScreen(config, storage = storage) } }
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         val dir = File("build/outputs/screenshots").apply { mkdirs() }
         File(dir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

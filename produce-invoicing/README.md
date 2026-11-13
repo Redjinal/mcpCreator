@@ -1,6 +1,6 @@
 # Produce Invoicing — Claude Code MVP Handoff v3
 
-> **Implementation status:** Tasks 00 (scaffold) and 01 (domain model, money, V3 numbering) complete — see `IMPLEMENTATION_LOG.md`. Domain logic only; nothing is persisted and there is no invoicing UI yet.
+> **Implementation status:** Tasks 00 (scaffold), 01 (domain, money, V3 numbering) and 02 (Room offline storage, atomic issue transaction) complete — see `IMPLEMENTATION_LOG.md`. No invoicing UI yet (Task 03).
 
 ## Repository layout (implementation)
 
