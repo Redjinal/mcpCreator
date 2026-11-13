@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple receipt glyph (placeholder until the client supplies a logo). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M38,30h32v46l-4,-3 -4,3 -4,-3 -4,3 -4,-3 -4,3 -4,-3 -4,3z" />
+    <path android:fillColor="#FF2D5E3E"
+        android:pathData="M43,39h22v3h-22zM43,47h22v3h-22zM43,55h14v3h-14z" />
+</vector>

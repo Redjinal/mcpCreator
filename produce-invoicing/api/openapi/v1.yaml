@@ -1,0 +1,68 @@
+openapi: 3.1.0
+info:
+  title: Produce Invoicing — Office API
+  version: 1.0.0-task00
+  description: |
+    Versioned contract between the Android app and the office LAN server.
+    All paths are under `/api/v1`. Breaking changes require `/api/v2`.
+
+    **Implemented (Task 00):** `GET /api/v1/health` only.
+
+    **Planned — NOT implemented, listed for traceability (docs/03, docs/11):**
+    `POST /auth/session`, `POST /devices/register`, `POST /driver-sequences/lease`
+    (fenced single-device issuing lease; replaces the obsolete number-block allocation),
+    `GET /bootstrap?since=`, `POST /sync/batch` (idempotency key required; registers
+    invoices and allocates the internal `PRE-N` register reference on first acceptance),
+    `GET /sync/changes?since=`, `GET /owner/daily-summary?date=`,
+    `POST /invoices/{uuid}/void`. Every one of these will require authentication and
+    enforce business (tenant) scope. They are added to this file only when implemented.
+servers:
+  - url: "{baseUrl}/api/v1"
+    description: Office LAN server. The base URL is deployment configuration, never hard-coded.
+    variables:
+      baseUrl:
+        default: https://office-server.invalid
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness and database readiness
+      description: |
+        Unauthenticated and data-free: reports only process/database status and versions.
+        Returns 503 within a few seconds when the database is unreachable.
+      responses:
+        "200":
+          description: API and database are up.
+          headers:
+            X-PI-Api-Version:
+              schema: { type: string, example: "1" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { status: ok, database: up, schemaVersion: "1", apiVersion: 1 }
+        "503":
+          description: Database unavailable.
+          headers:
+            X-PI-Api-Version:
+              schema: { type: string, example: "1" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { status: degraded, database: down, schemaVersion: null, apiVersion: 1 }
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, database, schemaVersion, apiVersion]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        database: { type: string, enum: [up, down] }
+        schemaVersion:
+          type: [string, "null"]
+          description: Latest applied Flyway migration version; null when the database is down.
+        apiVersion: { type: integer, const: 1 }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: Stable machine-readable code; never contains stack traces or PII. }

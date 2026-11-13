@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dev flavor only: allows cleartext http to a developer's local API
+     (e.g. docker compose on a workstation). Never used for pilot builds. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

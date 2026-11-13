@@ -1,0 +1,14 @@
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+
+# Secrets & local deploy state
+deploy/.env
+deploy/backups/
+*.jks
+*.keystore

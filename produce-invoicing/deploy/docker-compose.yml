@@ -1,0 +1,63 @@
+# Office LAN stack: API + PostgreSQL. No cloud dependency.
+#   cp deploy/.env.example deploy/.env   # then set real secrets locally (never commit .env)
+#   (cd server && ./gradlew installDist)
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+#
+# Security posture (docs/10, CLAUDE.md invariant 15):
+#  - PostgreSQL publishes NO host port and sits on an internal-only network.
+#  - The API binds to 127.0.0.1 unless the operator explicitly sets PI_API_BIND to the
+#    office server's LAN address in .env. No IP is hard-coded here.
+#  - TLS termination for pilot devices is a BLOCKED client decision (office CA vs
+#    reverse proxy) tracked in IMPLEMENTATION_LOG.md; until then, pilot-flavor apps
+#    (https only) cannot sync to this stack, by design.
+name: produce-invoicing
+
+services:
+  db:
+    image: postgres:17-alpine@sha256:d3244e8ce3f165ee3c93d9c4a4b1d0fe48b3a89e2287b717fdcbbde92d405065
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in deploy/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in deploy/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  api:
+    build:
+      context: ../server
+    image: produce-invoicing-api:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PI_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      PI_DB_USER: ${POSTGRES_USER}
+      PI_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PI_HTTP_PORT: "8080"
+      PI_SEED_SYNTHETIC: ${PI_SEED_SYNTHETIC:-false}
+    ports:
+      - "${PI_API_BIND:-127.0.0.1}:${PI_API_PORT:-8080}:8080"
+    networks: [backend, frontend]
+    healthcheck:
+      test: ["CMD", "/opt/server/bin/server", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  backend:
+    internal: true
+  frontend: {}
+
+volumes:
+  pgdata: {}
