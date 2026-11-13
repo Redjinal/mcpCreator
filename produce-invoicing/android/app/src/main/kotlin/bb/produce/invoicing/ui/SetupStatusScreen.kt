@@ -33,7 +33,13 @@ import bb.produce.invoicing.ui.theme.ProduceInvoicingTheme
  * those require the real implementations from later tasks.
  */
 @Composable
-fun SetupStatusScreen(config: AppConfig, modifier: Modifier = Modifier, storage: String = "Not opened") {
+fun SetupStatusScreen(
+    config: AppConfig,
+    modifier: Modifier = Modifier,
+    storage: String = "Not opened",
+    intro: String = "Device status. Invoicing is not available until someone signs in.",
+    actions: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {},
+) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -49,11 +55,8 @@ fun SetupStatusScreen(config: AppConfig, modifier: Modifier = Modifier, storage:
                 Text("PRODUCE INVOICING", style = MaterialTheme.typography.labelMedium,
                     fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Setup status", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-                Text(
-                    "Development scaffold (Task 00). Invoicing is not available in this build.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(intro, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                actions()
                 StatusRow("Build", "${config.flavor} · ${config.versionName}")
                 StatusRow("Office server", serverStatus(config.server), testTag = "server-status")
                 StatusRow("Local invoice storage", storage, testTag = "storage-status")

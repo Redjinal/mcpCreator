@@ -7,11 +7,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import bb.produce.invoicing.R
 
 /**
  * Colour tokens taken from the v4 prototype (reference/, "Produce Invoicing v4").
- * Fonts: v4 uses Public Sans (UI) and IBM Plex Mono (labels). Bundling those
- * OFL font files is deferred to Task 03; system sans/mono are used until then.
+ * Fonts: Public Sans (OFL, bundled in res/font, licence in docs/licenses). v4's IBM Plex Mono
+ * labels use the system monospace: no TTF build was obtainable from an allowed source.
  */
 object PiColors {
     val Forest = Color(0xFF2D5E3E)
@@ -55,7 +60,37 @@ private val PiShapes = Shapes(
     large = RoundedCornerShape(12.dp),
 )
 
+val PublicSans = FontFamily(
+    Font(R.font.public_sans_regular, FontWeight.Normal),
+    Font(R.font.public_sans_medium, FontWeight.Medium),
+    Font(R.font.public_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.public_sans_bold, FontWeight.Bold),
+)
+
+/** Monospace used for small uppercase labels and the 58 mm receipt preview. */
+val PiMono: FontFamily = FontFamily.Monospace
+
+private val PiTypography: Typography = Typography().let { t ->
+    Typography(
+        displayLarge = t.displayLarge.copy(fontFamily = PublicSans),
+        displayMedium = t.displayMedium.copy(fontFamily = PublicSans),
+        displaySmall = t.displaySmall.copy(fontFamily = PublicSans),
+        headlineLarge = t.headlineLarge.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        headlineMedium = t.headlineMedium.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        headlineSmall = t.headlineSmall.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        titleLarge = t.titleLarge.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        titleMedium = t.titleMedium.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        titleSmall = t.titleSmall.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        bodyLarge = t.bodyLarge.copy(fontFamily = PublicSans),
+        bodyMedium = t.bodyMedium.copy(fontFamily = PublicSans),
+        bodySmall = t.bodySmall.copy(fontFamily = PublicSans),
+        labelLarge = t.labelLarge.copy(fontFamily = PublicSans, fontWeight = FontWeight.SemiBold),
+        labelMedium = t.labelMedium.copy(fontFamily = PublicSans),
+        labelSmall = t.labelSmall.copy(fontFamily = PublicSans),
+    )
+}
+
 @Composable
 fun ProduceInvoicingTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = LightColors, shapes = PiShapes, content = content)
+    MaterialTheme(colorScheme = LightColors, shapes = PiShapes, typography = PiTypography, content = content)
 }

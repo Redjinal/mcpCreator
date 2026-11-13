@@ -30,7 +30,7 @@ class SetupStatusScreenTest {
             ProduceInvoicingTheme { SetupStatusScreen(AppConfig.from("pilot", "0.0.1", "", false)) }
         }
         compose.onNodeWithContentDescription("Office server: Not configured").assertExists()
-        compose.onNodeWithText("Invoicing is not available", substring = true).assertExists()
+        compose.onNodeWithText("Invoicing is not available until someone signs in", substring = true).assertExists()
     }
 
     @Test
